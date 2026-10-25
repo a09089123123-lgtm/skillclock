@@ -22,6 +22,16 @@ private final class FrameSink: @unchecked Sendable {
     }
 }
 
+/// 采集回调（非主线程）与主线程共享的帧状态。自带锁，可被任意线程安全访问。
+private final class FrameState: @unchecked Sendable {
+    let lock = NSLock()
+    var latestPixelBuffer: CVPixelBuffer?
+    var lastSnapshotAt = Date.distantPast
+    var lastDeliveredAt = Date.distantPast
+    /// 输出队列的最小投递间隔。系统帧率不可控，这里自行降频以降低解码与识别开销。
+    let deliveryInterval: TimeInterval = 1.0 / 10.0
+}
+
 /// 负责 iOS 27 的全屏采集。
 ///
 /// 注意：iOS 27 的 `SCStreamConfiguration` 只暴露 `width`、`height`、`capturesAudio` 等少数属性，
@@ -36,17 +46,11 @@ final class ScreenCaptureController: NSObject {
     private let outputQueue = DispatchQueue(label: "com.skillclock.capture")
     private let sink = FrameSink()
     private let ciContext = CIContext(options: [.useSoftwareRenderer: false])
-    private let frameLock = NSLock()
-    private var latestPixelBuffer: CVPixelBuffer?
-    private var lastSnapshotAt = Date.distantPast
-    private var lastDeliveredAt = Date.distantPast
+    private let frameState = FrameState()
     private var stream: SCStream?
     private var generation = 0
     private var pendingGeneration: Int?
     private var isObserverRegistered = false
-
-    /// 输出队列的最小投递间隔。系统帧率不可控，这里自行降频以降低解码与识别开销。
-    private let deliveryInterval: TimeInterval = 1.0 / 10.0
 
     override init() {
         super.init()
@@ -60,9 +64,9 @@ final class ScreenCaptureController: NSObject {
     }
 
     func latestSnapshot() -> CGImage? {
-        frameLock.lock()
-        let buffer = latestPixelBuffer
-        frameLock.unlock()
+        frameState.lock.lock()
+        let buffer = frameState.latestPixelBuffer
+        frameState.lock.unlock()
         guard let buffer else { return nil }
         let rect = CGRect(x: 0, y: 0, width: CVPixelBufferGetWidth(buffer), height: CVPixelBufferGetHeight(buffer))
         return ciContext.createCGImage(buffer, from: rect)
@@ -189,20 +193,22 @@ final class ScreenCaptureController: NSObject {
     /// 系统帧率在 iOS 上不可控，这里按最小间隔投递，避免高频回调压垮主线程。
     private nonisolated func deliverThrottled(_ sampleBuffer: CMSampleBuffer) {
         let now = Date()
-        frameLock.lock()
-        let shouldDeliver = now.timeIntervalSince(lastDeliveredAt) >= deliveryInterval
-        if shouldDeliver { lastDeliveredAt = now }
-        frameLock.unlock()
+        let state = frameState
+        state.lock.lock()
+        let shouldDeliver = now.timeIntervalSince(state.lastDeliveredAt) >= state.deliveryInterval
+        if shouldDeliver { state.lastDeliveredAt = now }
+        state.lock.unlock()
         guard shouldDeliver else { return }
         sink.send(sampleBuffer)
     }
 
     private nonisolated func storeSnapshotIfNeeded(from sampleBuffer: CMSampleBuffer) {
         let now = Date()
-        frameLock.lock()
-        let recentEnough = now.timeIntervalSince(lastSnapshotAt) >= 0.5
-        if recentEnough { lastSnapshotAt = now }
-        frameLock.unlock()
+        let state = frameState
+        state.lock.lock()
+        let recentEnough = now.timeIntervalSince(state.lastSnapshotAt) >= 0.5
+        if recentEnough { state.lastSnapshotAt = now }
+        state.lock.unlock()
         guard recentEnough else { return }
         guard let source = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         var copy: CVPixelBuffer?
@@ -213,9 +219,9 @@ final class ScreenCaptureController: NSObject {
             &copy
         )
         guard status == kCVReturnSuccess, let copy else { return }
-        frameLock.lock()
-        latestPixelBuffer = copy
-        frameLock.unlock()
+        state.lock.lock()
+        state.latestPixelBuffer = copy
+        state.lock.unlock()
     }
 }
 
