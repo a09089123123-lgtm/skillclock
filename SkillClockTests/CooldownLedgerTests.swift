@@ -51,10 +51,10 @@ final class CooldownLedgerTests: XCTestCase {
         var settings = ReminderSettings()
         settings.leadTimes[SummonerSpell.flash.rawValue] = 60
 
-        // 冷却 20 秒时，提前量上限为 10 秒，60 秒的设置被截断。
+        // 冷却表覆盖值为 20 秒时，提前量上限为 10 秒，60 秒的设置被截断。
         let shortCooldown: [SummonerSpell: TimeInterval] = [.flash: 20]
         let reminders = ledger.dueReminders(
-            at: start.addingTimeInterval(10),
+            at: start.addingTimeInterval(140),
             settings: settings,
             combatContext: .unknown,
             cooldowns: shortCooldown

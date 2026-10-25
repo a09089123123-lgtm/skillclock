@@ -69,7 +69,7 @@ final class ScreenCaptureController: NSObject {
         frameState.lock.unlock()
         guard let buffer else { return nil }
         let rect = CGRect(x: 0, y: 0, width: CVPixelBufferGetWidth(buffer), height: CVPixelBufferGetHeight(buffer))
-        return ciContext.createCGImage(buffer, from: rect)
+        return ciContext.createCGImage(CIImage(cvPixelBuffer: buffer), from: rect)
     }
 
     func presentPicker() {
@@ -212,13 +212,23 @@ final class ScreenCaptureController: NSObject {
         guard recentEnough else { return }
         guard let source = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
         var copy: CVPixelBuffer?
-        let status = CVPixelBufferCreateCopy(
+        let createStatus = CVPixelBufferCreate(
             kCFAllocatorDefault,
-            source,
+            CVPixelBufferGetWidth(source),
+            CVPixelBufferGetHeight(source),
+            CVPixelBufferGetPixelFormatType(source),
             [kCVPixelBufferCGImageCompatibilityKey: true] as CFDictionary,
             &copy
         )
-        guard status == kCVReturnSuccess, let copy else { return }
+        guard createStatus == kCVReturnSuccess, let copy else { return }
+        CVPixelBufferLockBaseAddress(source, .readOnly)
+        CVPixelBufferLockBaseAddress(copy, [])
+        if let src = CVPixelBufferGetBaseAddress(source),
+           let dst = CVPixelBufferGetBaseAddress(copy) {
+            memcpy(dst, src, CVPixelBufferGetDataSize(source))
+        }
+        CVPixelBufferUnlockBaseAddress(copy, [])
+        CVPixelBufferUnlockBaseAddress(source, .readOnly)
         state.lock.lock()
         state.latestPixelBuffer = copy
         state.lock.unlock()

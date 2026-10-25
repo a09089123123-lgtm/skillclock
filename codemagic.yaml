@@ -13,6 +13,7 @@ workflows:
       - name: 无签名编译并打包成 IPA
         script: |
           set -e
+          rm -rf build/SkillClock.xcarchive build/Payload
           xcodebuild \
             -project SkillClock.xcodeproj \
             -scheme SkillClock \

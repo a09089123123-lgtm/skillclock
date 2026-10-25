@@ -42,7 +42,7 @@ struct CooldownTable: Sendable {
         overrides[spell] != nil
     }
 
-    func setOverride(_ value: TimeInterval?, for spell: SummonerSpell) {
+    mutating func setOverride(_ value: TimeInterval?, for spell: SummonerSpell) {
         if let value {
             overrides[spell] = value
         } else {

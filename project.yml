@@ -9,8 +9,6 @@ targets:
     platform: iOS
     sources:
       - path: SkillClock
-    resources:
-      - path: SkillClock/Resources
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.skillclock.app

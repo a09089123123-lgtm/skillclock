@@ -106,6 +106,6 @@ struct RootView: View {
     }
 
     private func remainingText(_ seconds: TimeInterval) -> String {
-        seconds <= 0 ? "已就绪" : "\(Int(seconds.ceil())) 秒"
+        seconds <= 0 ? "已就绪" : "\(Int(seconds.rounded(.up))) 秒"
     }
 }
