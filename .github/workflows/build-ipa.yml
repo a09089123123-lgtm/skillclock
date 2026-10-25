@@ -25,7 +25,6 @@ jobs:
 
       - name: 生成 Xcode 工程
         run: xcodegen generate
-        working-directory: SkillClock
 
       - name: 无签名编译并打包归档
         run: |
@@ -37,7 +36,6 @@ jobs:
             -archivePath build/SkillClock.xcarchive \
             archive \
             CODE_SIGNING_ALLOWED=NO
-        working-directory: SkillClock
 
       - name: 打包成 IPA 安装包
         run: |
@@ -46,11 +44,10 @@ jobs:
           cd build
           zip -r SkillClock.ipa Payload
           ls -la SkillClock.ipa
-        working-directory: SkillClock
 
       - name: 上传 IPA 供下载
         uses: actions/upload-artifact@v4
         with:
           name: SkillClock-ipa
-          path: SkillClock/build/SkillClock.ipa
+          path: build/SkillClock.ipa
           retention-days: 30
