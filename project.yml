@@ -1,0 +1,36 @@
+name: SkillClock
+options:
+  bundleIdPrefix: com.skillclock
+  deploymentTarget:
+    iOS: "27.0"
+targets:
+  SkillClock:
+    type: application
+    platform: iOS
+    sources:
+      - path: SkillClock
+    resources:
+      - path: SkillClock/Resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.skillclock.app
+        PRODUCT_NAME: SkillClock
+        SWIFT_VERSION: "5.0"
+        INFOPLIST_FILE: SkillClock/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        TARGETED_DEVICE_FAMILY: "1"
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+    scheme:
+      gatherCoverageData: true
+  SkillClockTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: SkillClockTests
+    dependencies:
+      - target: SkillClock
+    settings:
+      base:
+        SWIFT_VERSION: "5.0"
+        GENERATE_INFOPLIST_FILE: YES

@@ -1,0 +1,56 @@
+name: 云端打包IPA
+
+on:
+  workflow_dispatch:   # 在 GitHub 网页上手动点按钮触发
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: 拉取源码
+        uses: actions/checkout@v4
+
+      - name: 查看可用的 Xcode 版本
+        run: ls /Applications | grep -i xcode || true
+
+      - name: 选择最新 Xcode
+        run: |
+          XCODE=$(ls -d /Applications/Xcode*.app | sort -V | tail -1)
+          echo "Using $XCODE"
+          sudo xcode-select -s "$XCODE/Contents/Developer"
+          xcodebuild -version
+
+      - name: 安装 XcodeGen
+        run: brew install xcodegen
+
+      - name: 生成 Xcode 工程
+        run: xcodegen generate
+        working-directory: SkillClock
+
+      - name: 无签名编译并打包归档
+        run: |
+          xcodebuild \
+            -project SkillClock.xcodeproj \
+            -scheme SkillClock \
+            -configuration Release \
+            -destination "generic/platform=iOS" \
+            -archivePath build/SkillClock.xcarchive \
+            archive \
+            CODE_SIGNING_ALLOWED=NO
+        working-directory: SkillClock
+
+      - name: 打包成 IPA 安装包
+        run: |
+          mkdir -p build/Payload
+          cp -R "build/SkillClock.xcarchive/Products/Applications/SkillClock.app" build/Payload/
+          cd build
+          zip -r SkillClock.ipa Payload
+          ls -la SkillClock.ipa
+        working-directory: SkillClock
+
+      - name: 上传 IPA 供下载
+        uses: actions/upload-artifact@v4
+        with:
+          name: SkillClock-ipa
+          path: SkillClock/build/SkillClock.ipa
+          retention-days: 30

@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "dataStatus": "third-party-unverified",
+  "observedAt": "2026-09-30",
+  "spells": {
+    "flash": 150,
+    "teleport": 150,
+    "cleanse": 110,
+    "heal": 100,
+    "barrier": 100,
+    "exhaust": 100,
+    "ignite": 100,
+    "ghost": 90,
+    "smite": 10
+  }
+}
