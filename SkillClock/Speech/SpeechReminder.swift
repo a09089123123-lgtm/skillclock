@@ -44,7 +44,10 @@ final class SpeechReminder: NSObject {
     private func speak(_ text: String) {
         let utterance = AVSpeechUtterance(string: text)
         utterance.voice = AVSpeechSynthesisVoice(language: "zh-CN")
-        utterance.rate = AVSpeechSynthesizerDefaultSpeechRate * 1.05
+        utterance.rate = min(
+            AVSpeechUtteranceMaximumSpeechRate,
+            AVSpeechUtteranceDefaultSpeechRate * 1.05
+        )
         utterance.preUtteranceDelay = 0
         utterance.postUtteranceDelay = 0.05
         synthesizer.speak(utterance)
